@@ -1,0 +1,478 @@
+<!--
+Copyright 2014 Dreeri
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/gpl.txt>.
+-->
+
+
+<html>
+<head>
+<title>Gaem</title>
+<meta charset="UTF-8">
+<style>
+@font-face
+{
+	font-family: "pacifico";
+	src: url("Pacifico.ttf");
+}
+</style>
+
+<script>
+
+var keyFlopL = false;
+var keyFlopR = false;
+var keyFlopU = false;
+var keyFlopD = false;
+var gFlip = false;
+var gCount = 10;
+
+var pFlip = false;
+var pCount = 20;
+
+var mouseX = 0;
+var mouseY = 0;
+var mouseCntrl = false;
+
+var windowW = window.innerWidth;
+var windowH = window.innerHeight;
+var playerOffX = 0;
+var playerOffY = 0;
+var playerW = windowW / 80;
+var playerH = windowH / 32;
+var player = {x: windowW / 2 - windowW / 10 / 2 + playerOffX - playerW / 2, y: windowH - windowH / 10 - windowH / 8 / 2 + playerOffY - playerH / 2, w: playerW, h: playerH};
+var slow = 0;
+var xSpeed = 0;
+
+var enemyA = [];
+var gameOn = false;
+var isDead = false;
+var enemyXSpawn = 0;
+var enemyYSpawn = -100;
+var enemySpeed = 3;
+
+var audioFlip = false;
+var score = "";
+var scoreI = 0;
+var highScorePlace = 0;
+var secondsNow = Math.round(new Date().getTime() /1000);
+var endScoreSeconds = 0;
+var endScoreTimer = 0;
+var enemySpeedTimer = 0;
+
+var fps = 120;
+
+function init()
+{
+	var canvas = document.getElementById('a');
+	var c = canvas.getContext('2d');
+
+	window.addEventListener("mousedown", mouseDown, false);
+	window.addEventListener("keydown", keyDownFunc, false);
+	window.addEventListener("keyup", keyUpFunc, false);
+	window.addEventListener("mousemove", mouseMove, false);
+
+	canvas.width = windowW;
+	canvas.height = windowH;
+
+	initEnemies();
+	background(c);
+}
+
+function mouseDown(e)
+{
+	mouseX = e.clientX;
+	mouseY = e.clientY;
+}
+
+function mouseMove(e)
+{
+	if(gameOn == true)
+	{
+		mouseX = e.clientX;
+		mouseY = e.clientY;
+	}
+}
+
+function keyDownFunc(e)
+{
+	var code = e.keyCode;
+	switch(code)
+	{
+		//down
+		case 40:
+		keyFlopD = true;
+		break;
+
+		//right
+		case 39:
+		keyFlopR = true;
+		break;
+		
+		//up
+		case 38:
+		keyFlopU = true;
+		break;
+
+		//left
+		case 37:
+		keyFlopL = true;
+		break;
+
+		//sift
+		case 16:
+		slow = -80;
+		playerH = windowH / 16;
+		playerW = windowW / 120;	
+		enemySpeed = 30;
+		break;
+	
+		//space
+		case 32:
+		if(gameOn == true)
+		{
+			window.location.reload();
+		}
+		gameOn = true;
+		secondsNow = Math.round(new Date().getTime() /1000);
+		break;
+	
+		//enter
+		case 13:
+		if(gameOn == true)
+		{
+			window.location.reload();
+		}
+		gameOn = true;
+		secondsNow = Math.round(new Date().getTime() /1000);
+		break;
+
+		default: 
+	}
+}
+
+function keyUpFunc(e)
+{
+	var code = e.keyCode;
+	switch(code)
+	{
+		//down
+		case 40:
+		keyFlopD = false;
+		break;
+
+		//right
+		case 39:
+		keyFlopR = false;
+		break;
+		
+		//up
+		case 38:
+		keyFlopU = false;
+		break;
+
+		//left
+		case 37:
+		keyFlopL = false;
+		break;
+
+		case 16:
+		slow = 0;
+		playerH = windowH / 32;
+		playerW = windowW / 40;
+		enemySpeed = 35;
+		break;
+
+		default:
+	}
+}
+
+function getRandomInt(min, max) 
+{
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function background(c)
+{
+	c.fillStyle = "rgba(24," + gCount  + ", 24, 0.5)";
+	
+	if(gFlip == false)
+        {
+                gCount += 1;
+        }
+        if(gFlip == true)
+        {
+                gCount -= 1;
+        }
+        if(gCount >= 110)
+        {
+                gFlip = 1;
+        }
+        if(gCount <= 5)
+        {
+                gFlip = 0;
+        }
+
+	c.fillRect(0, 0, window.innerWidth, window.innerHeight);
+	return c;
+}
+
+function initObjects(x, y, w, h, fill)
+{
+	this.x = x;
+	this.y = y;
+	this.w = w;
+	this.h = h;
+	this.fill = fill;
+}
+
+function initEnemies()
+{
+        for(var i = 0; i < 1000; i++)
+        {
+                if(enemyXSpawn >= windowW)
+                {
+                        enemyYSpawn -= windowH / 10;
+                        enemyXSpawn -= windowW;
+                }
+                enemyA.push(new initObjects(enemyXSpawn, enemyYSpawn, windowW / 40 + getRandomInt(-20, 20), windowH / 20, "rgb("+ i + ", 140, 100)"));
+                enemyXSpawn += getRandomInt(60, 200);
+        }
+}
+
+function destroyEnemies()
+{
+        for(var i = 0; i < enemyA.length; i++)
+        {
+                if(enemyA[i].y >= windowH)
+                {
+                        enemyA.pop();
+                }
+        }
+}
+
+function scoreFunc(c)
+{
+	if(gameOn == true)
+	{
+		if(isDead == false)
+		{
+			var seconds = Math.round(new Date().getTime() / 1000);
+			score = seconds - secondsNow;
+			scoreI = seconds - secondsNow;
+		}
+
+		c.fillStyle = "rgb(240, 240, 240)";
+		c.font = "bold 46px pacifico";
+		c.fillText(score, 50, 50);
+
+		var highScore = localStorage.getItem("highScore");
+		c.fillStyle= "rgba(240, 240, 240, 0.5)";
+		c.fillRect(0, -highScore + highScorePlace, windowW, 10);
+	}
+	return c;
+}
+
+function collision(c)
+{
+
+	if(isDead == false && gameOn == true)
+	{
+		for(var i = 0; i < enemyA.length; i++)
+		{
+			if(player.x <= enemyA[i].x + enemyA[i].w && player.x + player.w >= enemyA[i].x &&
+			player.y < enemyA[i].y + enemyA[i].h && player.y + player.h >= enemyA[i].y)
+			{
+				endScoreSeconds = Math.round(new Date().getTime() / 1000) - secondsNow;
+				isDead = true;
+			}
+		}
+	}
+
+	if(scoreI > endScoreSeconds + 3 && isDead == true)
+	{
+		location.reload();
+	}
+
+	if(isDead == true && gameOn == true)
+	{
+		var highScore = localStorage.getItem("highScore");
+		if(highScore <= highScorePlace)
+		{
+			localStorage.setItem("highScore", highScorePlace);
+		}
+	}
+
+	return c;
+}
+
+function audio()
+{ 
+        var audio = new Audio("adventure.ogg"); 
+        audio.loop = true;
+	audio.play(); 
+}
+
+function update()
+{
+	windowW = window.innerWidth;
+	windowH = window.innerHeight;
+
+	var canvas = document.getElementById('a');
+	var c = canvas.getContext('2d');
+
+	//canvas.width = windowW;
+	//canvas.height = windowH;
+	
+	background(c);
+	collision(c);
+
+	if(gameOn == true && audioFlip == false)
+	{
+		audioFlip = true;
+		audio();
+	}
+
+	if(mouseCntrl == false)
+	{	
+		player = {x: windowW / 2 - windowW / 10 / 2 + playerOffX - playerW / 2, y: windowH - windowH / 4 + playerOffY, w: playerW, h: playerH};
+	}
+
+	xSpeed = 10 + slow;
+
+	if(keyFlopL == true && player.x >= 0 + player.w)
+	{
+		playerOffX -= xSpeed;
+	}
+
+	if(keyFlopR == true && player.x <= windowW - player.w)
+	{
+		playerOffX += xSpeed;
+	}
+	
+	if(keyFlopU == true && player.y >= 0 + playerH  )
+	{
+		playerOffY -= xSpeed;
+	}
+
+	if(keyFlopD == true && player.y <= windowH - player.h * 2)
+	{
+		playerOffY += xSpeed;
+	}
+	
+	if(mouseCntrl == true)
+	{
+		player.x = mouseX;
+		player.y = mouseY;
+	}
+
+	for(var i = 0; i < enemyA.length; i++)
+	{
+		enemyA[i].y += enemySpeed;
+	}
+	
+	if(gameOn == true)
+	{
+		highScorePlace += enemySpeed;
+	}
+
+	enemySpeedTimer = new Date().getTime() / 1000 - secondsNow;
+	enemySpeed += enemySpeedTimer / 10000;
+	
+	return c;
+}
+
+function draw()
+{
+	setTimeout(function()
+	{
+		window.requestAnimationFrame(draw);
+	}, 1000 / fps);
+
+
+	var canvas = document.getElementById('a');
+	var c = canvas.getContext('2d');
+
+	if(gameOn == true)
+	{
+		update();
+	}
+
+	if(gameOn == false)
+	{
+		c.fillStyle = "rgb(240, 240, 240)";
+		c.font = "bold 46px pacifico";
+		var playButton = "Play";
+		c.fillText(playButton, windowW / 2 - c.measureText(playButton).width / 2, windowH / 2);
+
+		if(mouseX <= windowW / 2 + 75 && mouseX >= windowW / 2 - 75 &&
+		mouseY <= windowH / 2 + 50 && mouseY >= windowH / 2 - 50)
+		{
+			gameOn = true;
+			mouseCntrl = true;
+			secondsNow = Math.round(new Date().getTime() /1000);
+			document.getElementById("b").style.cursor = "none";
+		}
+	}
+	
+	for(var i = 0; i < enemyA.length; i++)
+        {
+                c.fillStyle = enemyA[i].fill;           
+                c.fillRect(enemyA[i].x, enemyA[i].y, enemyA[i].w, enemyA[i].h);
+        }
+
+	c.fillStyle = "rgb(" + pCount + ", 24, 20)";
+	if(pFlip == false)
+	{
+		pCount += 10;
+	}
+	if(pFlip == true)
+	{
+		pCount -= 10;
+	}
+	if(pCount >= 230)
+	{
+		pFlip = true;
+	}
+	if(pCount <= 20)
+	{
+		pFlip = false;
+	}
+	c.fillRect(player.x, player.y, player.w, player.h);	
+
+	scoreFunc(c);
+	
+	if(isDead == true)
+	{	
+		c.fillStyle = "rgb(240, 240, 240)";
+		c.font = "bold 46px pacifico";
+		var gameOver = "Game Over";
+		c.fillText(gameOver, windowW / 2 - c.measureText(gameOver).width / 2, windowH / 2);
+	}
+}
+
+function main()
+{
+	var canvas = document.getElementById('a');
+	var c = canvas.getContext('2d');
+
+	init();		
+	draw();
+}
+
+</script>
+</head>
+
+<body id="b" onload="main();" style="font-family: pacifico; margin: 0px; padding: 0px;">
+	<canvas id="a" style="background-color: #242424; border: 0px solid black;">Canvas not supported D:</canvas>
+</body>
+</html>
